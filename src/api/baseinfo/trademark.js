@@ -39,6 +39,14 @@ export default {
     })
   },
 
+  // 查找品牌
+  getTrademarkList() {
+    return request({
+      url: '/admin/product/baseTrademark/getTrademarkList',
+      method: 'get'
+    })
+  },
+
   findBaseTrademarkByKeyword(keyword) {
     return request({
       url: `${api_name}/findBaseTrademarkByKeyword/${keyword}`,

@@ -2,10 +2,11 @@ import request from '@/utils/request'
 
 export default {
 
-  getPageList(page, limit) {
+  getPageList(page, limit, searchObj) {
     return request({
       url: `/admin/product/list/${page}/${limit}`,
-      method: 'get'
+      method: 'get',
+      params: searchObj // url查询字符串或表单键值对
     })
   },
 
@@ -38,6 +39,22 @@ export default {
     return request({
       url: `/admin/product/findSkuInfoByKeyword/${keyword}`,
       method: 'get'
+    })
+  },
+
+  getSkuInfo(skuId) {
+    return request({
+      url: `/admin/product/getSkuInfo/${skuId}`,
+      method: 'get'
+    })
+  },
+
+  // 保存Spu
+  updateSkuInfo(skuForm) {
+    return request({
+      url: `/admin/product/updateSkuInfo`,
+      method: 'post',
+      data: skuForm
     })
   }
 }

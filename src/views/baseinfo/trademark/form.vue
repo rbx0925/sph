@@ -3,8 +3,8 @@
     <el-form label-width="120px">
       <el-form-item label="标题">
         <el-input v-model="trademark.tmName"/>
+        <span style="color:red;">{{ errorMessage.tmName}}</span>
       </el-form-item>
-
       <el-form-item label="Logo">
         <el-upload
           :show-file-list="false"
@@ -14,7 +14,7 @@
           class="avatar-uploader">
           <img :src="trademark.logoUrl">
         </el-upload>
-        
+        <span style="color:red;">{{ errorMessage.logoUrl}}</span>
       </el-form-item>
 
       <el-form-item>
@@ -38,7 +38,9 @@ export default {
     return {
       trademark: defaultForm,
       saveBtnDisabled: false, // 保存按钮是否禁用
-      BASE_API: process.env.BASE_API
+      BASE_API: process.env.BASE_API,
+
+      errorMessage: {}
     }
   },
 
@@ -85,7 +87,10 @@ export default {
     saveData() {
       trademarkApi.save(this.trademark).then(response => {
         // debugger
-        if (response.code) {
+        if (response.code === 206) {
+          this.saveBtnDisabled = false
+          this.errorMessage = response.data
+        } else {
           this.$message({
             type: 'success',
             message: response.message

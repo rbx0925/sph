@@ -15,7 +15,7 @@ service.interceptors.response.use(
      */
     // const res = response.data
     // debugger
-    if (response.data.code !== 200) {
+    if (response.data.code !== 200 && response.data.code !== 206) {
       Message({
         message: response.data.message,
         type: 'error',

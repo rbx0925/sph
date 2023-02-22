@@ -38,9 +38,10 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="操作" width="200" align="center">
+        <el-table-column label="操作" width="230" align="center">
           <template slot-scope="scope">
             <el-button type="primary" size="mini" icon="el-icon-plus" @click="addSku(scope.row.id, scope.row.spuName, scope.row.tmId)">添加SKU</el-button>
+            <el-button type="primary" size="mini" icon="el-icon-plus" @click="showSpuUpdate(scope.row)">修改SPU</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -139,6 +140,9 @@ export default {
       }
       if (categoryLevel === 3) {
         this.category3Id = categoryId
+
+        // 初始化表单
+        this.$refs.spuForm.init(this.category3Id)
       }
       this.searchObj.category3Id = categoryId
       // 查询数据
@@ -189,7 +193,19 @@ export default {
       }
 
       // 初始化表单
-      this.$refs.spuForm.init(this.category3Id)
+      this.$refs.spuForm.init(this.category3Id, null)
+
+      // 显示表单
+      this.showSpuForm = true
+    },
+
+    showSpuUpdate(row) {
+      if (!this.confirmSelect()) {
+        return
+      }
+
+      // 初始化表单
+      this.$refs.spuForm.init(this.category3Id, row.id)
 
       // 显示表单
       this.showSpuForm = true
@@ -216,7 +232,7 @@ export default {
       this.selectedSpu.spuName = spuName
 
       // 初始化表单
-      this.$refs.skuForm.init(spuId, this.category1Id, this.category2Id, this.category3Id, tmId)
+      this.$refs.skuForm.init(null, spuId, this.category1Id, this.category2Id, this.category3Id, tmId)
 
       // 显示表单
       this.showSkuForm = true

@@ -20,7 +20,7 @@
       <el-input v-model="spuForm.description" :rows="5" type="textarea"/>
     </el-form-item>
 
-    <el-form-item label="图片上传" >
+    <el-form-item label="上传图片" >
       <el-upload
         :on-success="onUploadSuccess"
         :before-upload="beforeUpload"
@@ -29,7 +29,8 @@
         :multiple="true"
         :action="BASE_API+'/admin/product/fileUpload'"
         class="upload-demo"
-        list-type="picture-card">
+        list-type="picture-card"
+        :file-list="spuImageBackList">
         <i class="el-icon-plus"/>
         <div slot="tip" class="el-upload__tip">只能上传jpg/png/gif文件，且不超过2MB</div>
       </el-upload>
@@ -102,6 +103,23 @@
       </el-table>
     </div>
 
+    <div style="margin-top: 10px">&nbsp;</div>
+    <el-form-item label="上传海报" >
+      <el-upload
+        :on-success="onUploadPosterSuccess"
+        :before-upload="beforeUpload"
+        :on-preview="onUploadPreview"
+        :on-remove="onUploadPosterRemove"
+        :multiple="true"
+        :action="BASE_API+'/admin/product/fileUpload'"
+        class="upload-demo"
+        list-type="picture-card"
+        :file-list="spuPosterBackList">
+        <i class="el-icon-plus"/>
+        <div slot="tip" class="el-upload__tip">只能上传jpg/png/gif文件，且不超过2MB</div>
+      </el-upload>
+    </el-form-item>
+
     <!--按钮-->
     <div style="margin-top:22px;">
       <el-button type="primary" size="mini" @click="saveSpuInfo()">保存</el-button>
@@ -119,6 +137,7 @@
 <script>
 import spu from '@/api/product/spu'
 import prop from '@/api/baseinfo/prop'
+import categoryTrademarkApi from '@/api/baseinfo/categoryTrademark'
 
 export default {
 
@@ -148,7 +167,8 @@ export default {
         // 上传文件列表
         spuImageList: [],
         // 销售属性
-        spuSaleAttrList: []
+        spuSaleAttrList: [],
+        spuPosterList: []
       },
       spuSaleAttrListTemp: [], // 临时数据：格式：baseSaleAttrId|saleAttrName
 
@@ -160,14 +180,22 @@ export default {
       // 图片预览对话框
       dialogImageVisible: false,
       // 品牌列表
-      trademarkList: []
+      trademarkList: [],
+
+      // 修改
+      spuId: null,
+      spuInfo: {},
+      spuImageBackList: [],
+      spuPosterBackList: []
     }
   },
 
   methods: {
 
-    init(category3Id) {
+    init(category3Id, spuId) {
       this.category3Id = category3Id
+      this.spuId = spuId
+
       // 初始化值
       // Spu表单数据
       this.spuForm = {
@@ -178,12 +206,69 @@ export default {
         // 上传文件列表
         spuImageList: [],
         // 销售属性
-        spuSaleAttrList: []
-      }
+        spuSaleAttrList: [],
 
+        spuPosterList: []
+      }
+      this.spuSaleAttrListTemp = []
       this.getBaseSaleAttrList()
       // 获取品牌列表
       this.getTrademarkList()
+
+      // 修改
+      this.spuInfo = {}
+      this.spuImageBackList = []
+      this.spuPosterBackList = []
+      if (this.spuId != null) {
+        this.getSpuInfo()
+      }
+    },
+
+    getSpuInfo() {
+      spu.getSpuInfo(this.spuId).then(response => {
+        this.spuInfo = response.data
+
+        this.spuForm.spuName = this.spuInfo.spuName
+        this.spuForm.tmId = this.spuInfo.tmId
+        this.spuForm.description = this.spuInfo.description
+
+        this.spuInfo.spuImageList.forEach(item => {
+          let obj = new Object()
+          obj.url = item.imgUrl
+          this.spuImageBackList.push(obj)
+
+          this.spuForm.spuImageList.push({
+            imgName: item.imgName,
+            imgUrl: item.imgUrl
+          })
+        })
+
+        this.spuInfo.spuPosterList.forEach(item => {
+          let obj = new Object()
+          obj.url = item.imgUrl
+          this.spuPosterBackList.push(obj)
+
+          this.spuForm.spuPosterList.push({
+            imgName: item.imgName,
+            imgUrl: item.imgUrl
+          })
+        })
+
+        this.spuInfo.spuSaleAttrList.forEach(item => {
+          const valueList = []
+          item.spuSaleAttrValueList.forEach(it => {
+            valueList.push(it.saleAttrValueName)
+          })
+          const saleAttr = {
+            saleAttr: item.baseSaleAttrId + '|' + item.saleAttrName, // id|name 字符串
+            saleAttrValue: item.id, // current input tag
+            edit: false,
+            spuSaleAttrValueList: valueList // [tag1, tag2, tag3]
+          }
+
+          this.spuSaleAttrListTemp.push(saleAttr)
+        })
+      })
     },
 
     // 获取基本销售属性列表
@@ -195,8 +280,9 @@ export default {
 
     // 获取品牌列表
     getTrademarkList() {
+      debugger
       // 查询数据
-      prop.getTrademarkList().then(response => {
+      categoryTrademarkApi.findTrademarkList(this.category3Id).then(response => {
         this.trademarkList = response.data
       })
     },
@@ -229,11 +315,18 @@ export default {
       })
 
       // console.log(this.spuForm)
-
-      spu.saveSpuInfo(this.spuForm).then(response => {
-        // 调用父组件监听函数
-        this.$emit('listenOnSave')
-      })
+      if (this.spuId === null) {
+        spu.saveSpuInfo(this.spuForm).then(response => {
+          // 调用父组件监听函数
+          this.$emit('listenOnSave')
+        })
+      } else {
+        this.spuForm.id = this.spuId
+        spu.updateSpuInfo(this.spuForm).then(response => {
+          // 调用父组件监听函数
+          this.$emit('listenOnSave')
+        })
+      }
     },
 
     // 返回Spu列表页面
@@ -277,11 +370,12 @@ export default {
 
     // 删除上传的文件
     onUploadRemove(file, fileList) {
+      debugger
       this.spuForm.spuImageList = []
       fileList.forEach(file => {
         this.spuForm.spuImageList.push({
           imgName: file.name,
-          imgUrl: file.response
+          imgUrl: file.url
         })
       })
     },
@@ -294,18 +388,20 @@ export default {
         edit: false,
         spuSaleAttrValueList: [] // [tag1, tag2, tag3]
       }
+      debugger
       this.spuSaleAttrListTemp.push(saleAttr)
     },
 
     // 根据name删除销售属性
     deleteSaleAttr(saleAttr) {
+      debugger
       const tempList = []
-      this.spuForm.spuSaleAttrList.forEach(item => {
+      this.spuSaleAttrListTemp.forEach(item => {
         if (item.saleAttr !== saleAttr) {
           tempList.push(item)
         }
       })
-      this.spuForm.spuSaleAttrList = tempList
+      this.spuSaleAttrListTemp = tempList
     },
 
     // 添加销售属性值
@@ -315,6 +411,7 @@ export default {
 
     // 保存销售属性值
     saveAttrValue(row) {
+      debugger
       if (!row.spuSaleAttrValueList) {
         row.spuSaleAttrValueList = []
       }
@@ -330,8 +427,31 @@ export default {
 
     // 删除销售属性值
     handleTagClose(tag, row) {
+      debugger
       const index = row.spuSaleAttrValueList.indexOf(tag)
       row.spuSaleAttrValueList.splice(index, 1)
+    },
+
+    // 上传图片成功的回调
+    onUploadPosterSuccess(res, file) {
+      debugger
+      // 填充上传文件列表
+      this.spuForm.spuPosterList.push({
+        imgName: file.name,
+        imgUrl: file.response.data
+      })
+    },
+
+    // 删除上传的文件
+    onUploadPosterRemove(file, fileList) {
+      debugger
+      this.spuForm.spuPosterList = []
+      fileList.forEach(file => {
+        this.spuForm.spuPosterList.push({
+          imgName: file.name,
+          imgUrl: file.url
+        })
+      })
     }
   }
 }

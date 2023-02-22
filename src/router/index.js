@@ -72,6 +72,12 @@ export const constantRouterMap = [
         component: () => import('@/views/baseinfo/trademark/form'),
         meta: { title: '编辑' },
         hidden: true
+      },
+      {
+        path: 'categoryTrademark/list',
+        name: 'categoryTrademark',
+        component: () => import('@/views/baseinfo/categoryTrademark/list'),
+        meta: { title: '分类品牌' }
       }
     ]
   },

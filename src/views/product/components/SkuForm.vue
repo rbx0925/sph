@@ -4,7 +4,7 @@
     <!--基本表单-->
     <el-form :model="skuForm" label-width="150px">
 
-      <el-form-item label="spu名称">
+      <el-form-item label="spu名称" v-if="skuId === null">
         <span>{{ spuName }} </span>
       </el-form-item>
 
@@ -41,7 +41,7 @@
             v-for="attrValue in attrInfo.attrValueList"
             :key="attrValue.id"
             :label="attrValue.valueName"
-            :value="attrInfo.id+'|'+attrValue.id"/>
+            :value="attrValue.id+'|'+attrValue.valueName+'|'+attrInfo.id+'|'+attrInfo.attrName"/>
         </el-select>
       </el-form-item>
     </el-form>
@@ -171,13 +171,18 @@ export default {
       // 当前sku的平台属性：格式：attrId|valueId
       skuAttrValueListTemp: [],
       // 当前sku的销售属性：格式：saleAttrValueId|saleAttrValueName|baseSaleAttrId|saleAttrName
-      skuSaleAttrValueListTemp: []
+      skuSaleAttrValueListTemp: [],
+
+      // 修改
+      skuId: null,
+      skuInfo: {}
     }
   },
 
   methods: {
 
-    init(spuId, category1Id, category2Id, category3Id, tmId) {
+    init(skuId, spuId, category1Id, category2Id, category3Id, tmId) {
+      this.skuId = skuId
       this.category1Id = category1Id
       this.category2Id = category2Id
       this.category3Id = category3Id
@@ -197,6 +202,8 @@ export default {
         skuImageList: [],
         skuDefaultImg: null
       }
+      this.skuAttrValueListTemp = []
+      this.skuSaleAttrValueListTemp = []
 
       // 获取平台属性列表
       this.getAttrInfoList()
@@ -204,6 +211,46 @@ export default {
       this.getSaleAttrList(spuId)
       // 获取图片列表
       this.getSpuImageList(spuId)
+
+      // 修改
+      this.skuInfo = {}
+      // this.spuImageBackList = []
+      // this.spuPosterBackList = []
+      if (this.skuId != null) {
+        this.getSkuInfo()
+      }
+    },
+
+    getSkuInfo() {
+      let that = this
+      sku.getSkuInfo(this.skuId).then(response => {
+        this.skuInfo = response.data
+
+        debugger
+        this.skuForm.skuName = this.skuInfo.skuName
+        this.skuForm.price = this.skuInfo.price
+        this.skuForm.weight = this.skuInfo.weight
+        this.skuForm.skuDesc = this.skuInfo.skuDesc
+
+        this.skuInfo.skuImageList.forEach(item => {
+          this.skuImageList.forEach(it => {
+            if (item.imgUrl === it.imgUrl) {
+              that.$refs.skuImageListTable.toggleRowSelection(it, true)
+
+              if (item.isDefault === '1') {
+                it.default = true
+              }
+            }
+          })
+        })
+
+        this.skuInfo.skuAttrValueList.forEach(item => {
+          this.skuAttrValueListTemp.push( item.valueId + '|' + item.valueName + '|' + item.attrId + '|' + item.attrName )
+        })
+        this.skuInfo.skuSaleAttrValueList.forEach(item => {
+          this.skuSaleAttrValueListTemp.push( item.saleAttrValueId + '|' + item.saleAttrValueName + '|' + item.baseSaleAttrId + '|' + item.saleAttrName )
+        })
+      })
     },
 
     // 获取平台属性列表
@@ -245,6 +292,7 @@ export default {
 
     // 保存Sku
     saveSkuInfo() {
+      debugger
       this.skuForm.category3Id = this.category3Id
       this.skuForm.spuId = this.spuId
       this.skuForm.tmId = this.tmId
@@ -254,8 +302,10 @@ export default {
       this.skuAttrValueListTemp.forEach(skuAttrValueTemp => {
         const arr = skuAttrValueTemp.split('|')
         const skuAttrValue = {
-          attrId: arr[0],
-          valueId: arr[1]
+          valueId: arr[0],
+          valueName: arr[1],
+          attrId: arr[2],
+          attrName: arr[3]
         }
         this.skuForm.skuAttrValueList.push(skuAttrValue)
       })
@@ -267,7 +317,7 @@ export default {
         const skuSaleAttrValue = {
           saleAttrValueId: arr[0],
           saleAttrValueName: arr[1],
-          baseSaleAttrId: arr[2],
+          saleAttrId: arr[2],
           saleAttrName: arr[3]
         }
         this.skuForm.skuSaleAttrValueList.push(skuSaleAttrValue)
@@ -289,12 +339,19 @@ export default {
         }
       })
 
-      // console.log(this.skuForm)
-
-      sku.saveSkuInfo(this.skuForm).then(response => {
-        // 调用父组件监听函数
-        this.$emit('listenOnSave')
-      })
+      console.log(this.skuForm)
+      if (this.skuId === null) {
+        sku.saveSkuInfo(this.skuForm).then(response => {
+          // 调用父组件监听函数
+          this.$emit('listenOnSave')
+        })
+      } else {
+        this.skuForm.id = this.skuId
+        sku.updateSkuInfo(this.skuForm).then(response => {
+          // 调用父组件监听函数
+          this.$emit('listenOnSave')
+        })
+      }
     },
 
     // 返回Spu列表页面
